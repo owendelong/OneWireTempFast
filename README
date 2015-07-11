@@ -1,52 +1,69 @@
 This is early work -- Just getting started.
 
-The intent is to produce a library designed to read many OneWire Temperature sensors (e.g. DS18B20, DS18S20, etc.)
-reliably and as quickly as possible.
+The intent is to produce a library designed to read many OneWire Temperature
+sensors (e.g. DS18B20, DS18S20, etc.) reliably and as quickly as possible.
 
-Further, the intenet is to provide more complete documentation of the library than is present in the others I've found.
+Further, the intenet is to provide more complete documentation of the library
+than is present in the others I've found.
 
 Tricks used for speeding up the library:
 
 	1.	Tell all the sensors to start converting at the same time.
 	2.	Wait for all of them to finish at the same time.
-			There's no way to monitor a single temperature sensor after you've
-			reset the bus. This is an artifact of the OneWire protocol. However,
-			we can tell all the sensors to start converting and if we wait without
-			resetting the bus, the bus will not start responding with 1s until
-			ALL of the devices have finished their conversion.
+			There's no way to monitor a single temperature
+			sensor after you've reset the bus. This is an
+			artifact of the OneWire protocol. However, we can
+			tell all the sensors to start converting and if
+			we wait without resetting the bus, the bus will
+			not start responding with 1s until ALL of the
+			devices have finished their conversion.
 
-			It would be nice if we could iterate through the devices and check
-			for a ready result, but that's not possible with OneWire.
+			It would be nice if we could iterate through
+			the devices and check for a ready result, but
+			that's not possible with OneWire.
 
-	3.	Store the last received scratchpad, temperature, and a timestamp (millis) for each
-		sensor we track. If a read request is issued for a particular sensor and the data
-		is less than 2000 millis old, just return what we already have.
+	3.	Store the last received scratchpad, temperature, and
+		a timestamp (millis) for each sensor we track. If a
+		read request is issued for a particular sensor and the
+		data is less than 2000 millis old, just return what we
+		already have.
 
-	4.	Anytime a conversion request is made, initiate conversions on ALL devices.
+	4.	Anytime a conversion request is made, initiate
+		conversions on ALL devices.
 
-	5.	If a read request comes in after a conversion request was made, finish waiting for
-		all conversion requests to complete prior to performing the read. (This makes the
-		library relatively safe, but does reduce speed in some less likely applications)
+	5.	If a read request comes in after a conversion request
+		was made, finish waiting for all conversion requests
+		to complete prior to performing the read. (This makes
+		the library relatively safe, but does reduce speed in
+		some less likely applications)
 
-	6.	Record the timestamp of each conversion request. Any request for conversion
-		less than 2000 millis later will return immediately. It will not affect the
+	6.	Record the timestamp of each conversion request. Any
+		request for conversion less than 2000 millis later
+		will return immediately. It will not affect the
 		devices.
 
-	7.	If the last conversion request has been waited on, mark it wait_complete.
-		(Don't wait again for the same conversion)
+	7.	If the last conversion request has been waited on,
+		mark it wait_complete.  (Don't wait again for the
+		same conversion)
 
-	8.	If the bus is reset prior to waiting on conversion (shouldn't happen), mark
-		the conversion status as wate_maxtime. (maxtime is 750ms according
-		to the datasheet, but allow 760). Any subsequent fetch will result in a
-		delay until now-timestamp > 760. An extra 10 ms one-time (not per sensor)
-		is relatively harmless. (we could further optimize since we have the
-		data and track max resolution and optimize this timer based on the
-		maximum resolution currently in use).
+	8.	If the bus is reset prior to waiting on conversion
+		(shouldn't happen), mark the conversion status as
+		wait_maxtime. (maxtime is 750ms according to the
+		datasheet, but allow 760). Any subsequent fetch will
+		result in a delay until now-timestamp > 760. An extra
+		10 ms one-time (not per sensor) is relatively harmless.
+		(we could further optimize since we have the data and
+		track max resolution and optimize this timer based on
+		the maximum resolution currently in use).
 
-	9.	In order to optimize for speed, we don't worry about bus power density
-		being kept for parasitic power. DO NOT USE parasitic power with this
-		library. (For one thing, parasitic power is generally completely inadequate
-		for powering multiple sensors performing simultaneous conversion).
+	9.	In order to optimize for speed, we don't worry about
+		bus power density being kept for parasitic power.
+
+			DO NOT USE parasitic power with this library.
+
+		(For one thing, parasitic power is generally completely
+		inadequate for powering multiple sensors performing
+		simultaneous conversion).
 
 
 
